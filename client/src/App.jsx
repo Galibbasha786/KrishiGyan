@@ -8,6 +8,8 @@ import Dashboard from './components/Dashboard';
 import Farms from './components/Farms';
 import CropRecommendations from './components/CropRecommendations';
 import Layout from './components/Layout';
+import PestManagement from './components/PestManagement';
+import MarketPrices from './components/MarketPrices';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -20,8 +22,11 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
+            {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            
+            {/* Protected routes */}
             <Route path="/" element={
               <ProtectedRoute>
                 <Layout>
@@ -43,6 +48,23 @@ function App() {
                 </Layout>
               </ProtectedRoute>
             } />
+            <Route path="/pest" element={
+              <ProtectedRoute>
+                <Layout>
+                  <PestManagement />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/market" element={
+              <ProtectedRoute>
+                <Layout>
+                  <MarketPrices />
+                </Layout>
+              </ProtectedRoute>
+            } />
+            
+            {/* Catch all route - redirect to home */}
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
       </Router>

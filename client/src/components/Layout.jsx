@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Home, Sprout, CloudRain } from 'lucide-react';
+import { LogOut, Home, Sprout, CloudRain, Shield, TrendingUp } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -13,6 +13,8 @@ const Layout = ({ children }) => {
     { path: '/', icon: Home, label: 'Dashboard' },
     { path: '/farms', icon: Sprout, label: 'My Farms' },
     { path: '/crops', icon: CloudRain, label: 'Crop Advice' },
+    { path: '/pest', icon: Shield, label: 'Pest Control' }, // Fixed path to match App.jsx
+    { path: '/market', icon: TrendingUp, label: 'Market Prices' },
   ];
 
   return (

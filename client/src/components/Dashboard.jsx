@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { farmAPI, weatherAPI } from '../services/api';
-import { Sprout, CloudRain, TrendingUp, AlertCircle, Plus } from 'lucide-react';
+import { Sprout, CloudRain, TrendingUp, AlertCircle, Plus, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Chatbot from './Chatbot';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -110,6 +111,35 @@ const Dashboard = () => {
         })}
       </div>
 
+      {/* Quick Access Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div 
+          className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => navigate('/pest')}
+        >
+          <div className="flex items-center gap-3">
+            <Shield className="text-green-500" size={24} />
+            <div>
+              <h3 className="font-semibold text-gray-900">Pest Control</h3>
+              <p className="text-sm text-gray-600">Identify & manage pests</p>
+            </div>
+          </div>
+        </div>
+
+        <div 
+          className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => navigate('/market')}
+        >
+          <div className="flex items-center gap-3">
+            <TrendingUp className="text-blue-500" size={24} />
+            <div>
+              <h3 className="font-semibold text-gray-900">Market Prices</h3>
+              <p className="text-sm text-gray-600">Check current rates</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Weather Alert */}
       {weather && (
         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-natural-sky rounded-xl p-6 mb-8 flex items-center space-x-4">
@@ -190,6 +220,9 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   );
 };
