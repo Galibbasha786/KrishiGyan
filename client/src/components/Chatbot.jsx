@@ -18,7 +18,7 @@ const Chatbot = () => {
   const messagesEndRef = useRef(null);
 
   // Initialize Gemini AI
-  const genAI = new GoogleGenerativeAI("AIzaSyCcTXqMPLqBMAbL4F64g6ORfmcR5HZwozY");
+  const genAI = new GoogleGenerativeAI("paste your api key here");
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const scrollToBottom = () => {
