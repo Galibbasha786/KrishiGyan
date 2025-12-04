@@ -1,13 +1,18 @@
 // src/components/CropRecommendations.jsx
-import React, { useState } from 'react';
-import { cropAPI } from '../services/api';
-import { Sprout, TrendingUp, Droplets, Leaf } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sprout, TrendingUp, Droplets, Leaf, CloudRain, Thermometer, Wind } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext.jsx';
+
+// Note: You'll need to install @google/generative-ai via npm: npm install @google/generative-ai
+// For Vite, set your Gemini API key in .env as VITE_GEMINI_API_KEY (not REACT_APP_)
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const CropRecommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   const { t } = useLanguage();
 
   const [filters, setFilters] = useState({
@@ -30,19 +35,154 @@ const CropRecommendations = () => {
     { value: 'high', label: 'High Water' }
   ];
 
-  const getRecommendations = async () => {
-    setLoading(true);
-    setHasSearched(true);
-    
+  // Function to geocode district to lat/long using Nominatim (free API)
+  const geocodeDistrict = async (district) => {
     try {
-      const response = await cropAPI.getRecommendations(filters);
-      setRecommendations(response.data.recommendations || []);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(district)}&limit=1`);
+      const data = await response.json();
+      if (data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      }
+      return null;
     } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      setRecommendations([]);
-    } finally {
-      setLoading(false);
+      console.error('Geocoding error:', error);
+      return null;
     }
+  };
+
+  // Function to fetch weather using Open-Meteo (free API, no key needed)
+  const fetchWeather = async (lat, lon) => {
+    try {
+      const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,precipitation_probability`);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Weather fetch error:', error);
+      return null;
+    }
+  };
+
+  // Fetch weather when district changes
+  useEffect(() => {
+    if (filters.district.trim()) {
+      setWeatherLoading(true);
+      geocodeDistrict(filters.district).then(coords => {
+        if (coords) {
+          fetchWeather(coords.lat, coords.lon).then(weatherData => {
+            setWeather(weatherData);
+            setWeatherLoading(false);
+          });
+        } else {
+          setWeather(null);
+          setWeatherLoading(false);
+        }
+      });
+    } else {
+      setWeather(null);
+    }
+  }, [filters.district]);
+
+  // Function to get recommendations using Gemini API
+  const getRecommendations = async () => {
+  setLoading(true);
+  
+  try {
+    const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const prompt = `
+      Based on the following farming conditions, recommend suitable crops.
+      Return ONLY valid JSON with this structure:
+      {
+        "recommendations": [
+          {
+            "name": "Crop Name",
+            "localName": "Local Name",
+            "recommendationScore": 85,
+            "season": "Kharif",
+            "waterRequirements": "Medium",
+            "duration": 90,
+            "yieldPerAcre": { "min": 10, "max": 20, "unit": "tons" },
+            "benefits": ["Benefit A", "Benefit B"]
+          }
+        ]
+      }
+
+      Conditions:
+      - Soil Type: ${filters.soilType}
+      - Water: ${filters.waterAvailability}
+      - District: ${filters.district || "Not specified"}
+      - Current Weather: ${
+        weather
+          ? `Temperature ${weather.current_weather.temperature}°C, Wind ${weather.current_weather.windspeed} km/h, Precipitation ${weather.hourly.precipitation_probability[0]}%`
+          : "Not available"
+      }
+
+      Return ONLY JSON. No text, no explanation.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text().trim();
+
+    console.log("RAW GEMINI RESPONSE:", text);
+
+    // -----------------------------
+    // CLEAN & EXTRACT VALID JSON
+    // -----------------------------
+
+    // Remove ```json or ```
+    let cleaned = text
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
+
+    // Extract text between first { and last }
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    }
+
+    console.log("CLEANED JSON STRING:", cleaned);
+
+    // Parse JSON safely
+    let data;
+    try {
+      data = JSON.parse(cleaned);
+    } catch (err) {
+      console.error("❌ JSON PARSE ERROR:", err);
+      console.log("FAILED JSON TEXT:", cleaned);
+      setRecommendations([]);
+      return;
+    }
+
+    setRecommendations(data.recommendations || []);
+
+  } catch (error) {
+    console.error("Error fetching recommendations from Gemini:", error);
+    setRecommendations([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  // Real-time updates: Poll the API every 10 minutes if hasSearched is true
+  useEffect(() => {
+    if (!hasSearched) return;
+
+    const interval = setInterval(() => {
+      getRecommendations();
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => clearInterval(interval);
+  }, [hasSearched, filters, weather]); // Include weather in dependencies
+
+  const handleAnalyze = () => {
+    setHasSearched(true);
+    getRecommendations();
   };
 
   const getSuitabilityColor = (score) => {
@@ -125,13 +265,48 @@ const CropRecommendations = () => {
           </div>
         </div>
 
+        {/* Weather Display */}
+        {filters.district && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+            <h4 className="text-lg font-semibold text-primary-green mb-2">{t('currentWeather')}</h4>
+            {weatherLoading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-green mr-2"></div>
+                <span className="text-natural-brown">{t('loadingWeather')}</span>
+              </div>
+            ) : weather ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center">
+                  <Thermometer size={20} className="mr-2 text-red-500" />
+                  <span className="text-sm">{t('temperature')}: {weather.current_weather.temperature}°C</span>
+                </div>
+                <div className="flex items-center">
+                  <Wind size={20} className="mr-2 text-blue-500" />
+                  <span className="text-sm">{t('windspeed')}: {weather.current_weather.windspeed} km/h</span>
+                </div>
+                <div className="flex items-center">
+                  <CloudRain size={20} className="mr-2 text-gray-500" />
+                  <span className="text-sm">{t('precipitation')}: {weather.hourly.precipitation_probability[0]}%</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-natural-brown text-sm">{t('weatherNotFound')}</p>
+            )}
+          </div>
+        )}
+
         <button 
-          onClick={getRecommendations}
+          onClick={handleAnalyze}
           className="w-full bg-gradient-to-r from-primary-green to-primary-light text-white py-3 px-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50"
           disabled={loading}
         >
           {loading ? t('analyzingText') : t('analyzeButton')}
         </button>
+        {hasSearched && (
+          <p className="text-center text-sm text-natural-brown mt-2">
+            {t('realTimeUpdateNote')}
+          </p>
+        )}
       </div>
 
       {/* Results Section */}
