@@ -1,10 +1,11 @@
 // src/components/FarmExpenses.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext.jsx';
 import { 
   Calculator, Plus, Trash2, TrendingUp, TrendingDown, 
   DollarSign, Save, FileText, Download
 } from 'lucide-react';
+import { expenseAPI, incomeAPI } from '../services/api';
 
 const FarmExpenses = () => {
   const { t } = useLanguage();
@@ -13,6 +14,8 @@ const FarmExpenses = () => {
     cropSales: 0,
     otherIncome: 0
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [expenseForm, setExpenseForm] = useState({
     category: '',
     item: '',
@@ -33,37 +36,103 @@ const FarmExpenses = () => {
     { value: 'other', label: t('expenseCategoryOther') || 'Other' }
   ];
 
-  const handleAddExpense = (e) => {
+  const getErrorMessage = (err, fallback) => {
+    return (
+      err?.response?.data?.message ||
+      err?.message ||
+      fallback
+    );
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const [expensesRes, incomeRes] = await Promise.all([
+        expenseAPI.getExpenses(),
+        incomeAPI.getIncome(),
+      ]);
+      setExpenses(expensesRes.data || []);
+      if (incomeRes.data) {
+        setIncome({
+          cropSales: incomeRes.data.cropSales ?? 0,
+          otherIncome: incomeRes.data.otherIncome ?? 0,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching expenses/income:', err);
+      setError(getErrorMessage(err, t('errorFetchingExpenses') || 'Unable to load expenses/income'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch expenses on mount
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAddExpense = async (e) => {
     e.preventDefault();
     if (!expenseForm.category || !expenseForm.item || !expenseForm.amount) {
       alert(t('fillAllFields') || 'Please fill all required fields');
       return;
     }
 
-    const newExpense = {
-      id: Date.now(),
-      ...expenseForm,
-      amount: parseFloat(expenseForm.amount)
-    };
-
-    setExpenses([...expenses, newExpense]);
-    setExpenseForm({
-      category: '',
-      item: '',
-      amount: '',
-      date: new Date().toISOString().split('T')[0],
-      description: ''
-    });
+    try {
+      setLoading(true);
+      setError('');
+      const res = await expenseAPI.addExpense({
+        ...expenseForm,
+        amount: parseFloat(expenseForm.amount),
+      });
+      const created = res.data?.expense || null;
+      if (created) {
+        // Optimistically show in UI
+        setExpenses((prev) => [created, ...prev]);
+        // Refresh from server to stay in sync (ignore errors)
+        fetchData().catch(() => {});
+      }
+      setExpenseForm({
+        category: '',
+        item: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        description: ''
+      });
+    } catch (err) {
+      console.error('Error adding expense:', err);
+      setError(getErrorMessage(err, t('errorAddingExpense') || 'Unable to add expense'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteExpense = (id) => {
-    setExpenses(expenses.filter(exp => exp.id !== id));
+  const handleDeleteExpense = async (id) => {
+    try {
+      setLoading(true);
+      setError('');
+      await expenseAPI.deleteExpense(id);
+      await fetchData();
+    } catch (err) {
+      console.error('Error deleting expense:', err);
+      setError(getErrorMessage(err, t('errorDeletingExpense') || 'Unable to delete expense'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const totalIncome = parseFloat(income.cropSales || 0) + parseFloat(income.otherIncome || 0);
   const profit = totalIncome - totalExpenses;
   const profitMargin = totalIncome > 0 ? ((profit / totalIncome) * 100).toFixed(2) : 0;
+
+  const formatDate = (value) => {
+    if (!value) return '';
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString();
+  };
 
   const expensesByCategory = expenses.reduce((acc, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
@@ -104,6 +173,12 @@ const FarmExpenses = () => {
         <p className="text-xl text-natural-brown">
           {t('trackExpensesCalculateProfit') || 'Track your farm expenses and calculate your profit'}
         </p>
+        {error && (
+          <p className="mt-3 text-sm text-red-600">{error}</p>
+        )}
+        {loading && (
+          <p className="mt-2 text-sm text-gray-500">{t('loading') || 'Loading...'}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -230,6 +305,28 @@ const FarmExpenses = () => {
                   placeholder="0.00"
                 />
               </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    setError('');
+                    await incomeAPI.saveIncome({
+                      cropSales: parseFloat(income.cropSales || 0),
+                      otherIncome: parseFloat(income.otherIncome || 0),
+                    });
+                  } catch (err) {
+                    console.error('Error saving income:', err);
+                    setError(t('errorSavingIncome') || 'Unable to save income');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="mt-2 w-full bg-gradient-to-r from-primary-green to-primary-light text-white py-2 px-4 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <Save size={18} />
+                {t('saveIncome') || 'Save Income'}
+              </button>
             </div>
           </div>
         </div>
@@ -281,6 +378,15 @@ const FarmExpenses = () => {
                 <FileText size={24} />
                 {t('expenseList') || 'Expense List'}
               </h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchData}
+                  className="flex items-center gap-1 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+                  disabled={loading}
+                  title={t('refresh') || 'Refresh'}
+                >
+                  {t('refresh') || 'Refresh'}
+                </button>
               {expenses.length > 0 && (
                 <button
                   onClick={exportToCSV}
@@ -290,6 +396,7 @@ const FarmExpenses = () => {
                   {t('exportCSV') || 'Export CSV'}
                 </button>
               )}
+              </div>
             </div>
 
             {expenses.length === 0 ? (
@@ -317,9 +424,10 @@ const FarmExpenses = () => {
                   <tbody>
                     {expenses.map((expense) => {
                       const categoryLabel = expenseCategories.find(cat => cat.value === expense.category)?.label || expense.category;
+                      const expenseId = expense._id || expense.id;
                       return (
-                        <tr key={expense.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4 text-sm text-gray-700">{expense.date}</td>
+                        <tr key={expenseId} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4 text-sm text-gray-700">{formatDate(expense.date)}</td>
                           <td className="py-3 px-4 text-sm text-gray-700">{categoryLabel}</td>
                           <td className="py-3 px-4 text-sm text-gray-700">
                             <div>
@@ -334,7 +442,7 @@ const FarmExpenses = () => {
                           </td>
                           <td className="py-3 px-4 text-center">
                             <button
-                              onClick={() => handleDeleteExpense(expense.id)}
+                              onClick={() => handleDeleteExpense(expenseId)}
                               className="text-red-600 hover:text-red-800 transition-colors"
                               title={t('delete') || 'Delete'}
                             >

@@ -38,4 +38,23 @@ export const weatherAPI = {
   getWeather: (district) => api.get(`/weather/${district}`),
 };
 
+export const expenseAPI = {
+  getExpenses: () => api.get('/expenses'),
+  addExpense: (data) => api.post('/expenses', data),
+  updateExpense: (id, data) => api.put(`/expenses/${id}`, data),
+  deleteExpense: (id) => api.delete(`/expenses/${id}`),
+};
+
+export const incomeAPI = {
+  getIncome: () => api.get('/income'),
+  saveIncome: (data) => api.put('/income', data),
+};
+
+export const taskAPI = {
+  getTasks: () => api.get('/tasks'),
+  addTask: (data) => api.post('/tasks', data),
+  updateTask: (id, data) => api.put(`/tasks/${id}`, data),
+  deleteTask: (id) => api.delete(`/tasks/${id}`),
+};
+
 export default api;

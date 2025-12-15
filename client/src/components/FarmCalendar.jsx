@@ -1,6 +1,7 @@
 // src/components/FarmCalendar.jsx
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext.jsx';
+import { taskAPI } from '../services/api';
 import { 
   Calendar, Plus, Edit2, Trash2, CheckCircle, Circle, 
   Clock, AlertCircle, ChevronLeft, ChevronRight, Filter
@@ -11,6 +12,8 @@ const FarmCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
@@ -49,6 +52,34 @@ const FarmCalendar = () => {
     { value: 'inProgress', label: t('statusInProgress') || 'In Progress', icon: Clock },
     { value: 'completed', label: t('statusCompleted') || 'Completed', icon: CheckCircle }
   ];
+
+  const getErrorMessage = (err, fallback) => {
+    return (
+      err?.response?.data?.message ||
+      err?.message ||
+      fallback
+    );
+  };
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await taskAPI.getTasks();
+      const data = res.data?.tasks || res.data || [];
+      setTasks(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      setError(getErrorMessage(err, t('errorFetchingTasks') || 'Unable to load tasks'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Get days in month
   const getDaysInMonth = (date) => {
@@ -103,27 +134,28 @@ const FarmCalendar = () => {
     }
   };
 
-  const handleAddTask = (e) => {
+  const handleAddTask = async (e) => {
     e.preventDefault();
     if (!taskForm.title || !taskForm.category || !taskForm.date) {
       alert(t('fillRequiredFields') || 'Please fill all required fields');
       return;
     }
 
-    if (editingTask) {
-      // Update existing task
-      setTasks(tasks.map(task => 
-        task.id === editingTask.id 
-          ? { ...taskForm, id: editingTask.id }
-          : task
-      ));
-    } else {
-      // Add new task
-      const newTask = {
-        id: Date.now(),
-        ...taskForm
-      };
-      setTasks([...tasks, newTask]);
+    try {
+      setLoading(true);
+      setError('');
+      if (editingTask && (editingTask._id || editingTask.id)) {
+        const updatedId = editingTask._id || editingTask.id;
+        await taskAPI.updateTask(updatedId, taskForm);
+      } else {
+        await taskAPI.addTask(taskForm);
+      }
+      await fetchTasks();
+    } catch (err) {
+      console.error('Error saving task:', err);
+      setError(getErrorMessage(err, t('errorSavingTask') || 'Unable to save task'));
+    } finally {
+      setLoading(false);
     }
 
     // Reset form
@@ -143,20 +175,51 @@ const FarmCalendar = () => {
 
   const handleEditTask = (task) => {
     setEditingTask(task);
-    setTaskForm(task);
+    setTaskForm({
+      title: task.title,
+      description: task.description || '',
+      category: task.category,
+      date: task.date?.slice(0,10) || task.date,
+      time: task.time || '',
+      priority: task.priority || 'medium',
+      status: task.status || 'pending',
+      farmId: task.farmId || ''
+    });
     setShowTaskModal(true);
   };
 
   const handleDeleteTask = (id) => {
-    if (window.confirm(t('confirmDeleteTask') || 'Are you sure you want to delete this task?')) {
-      setTasks(tasks.filter(task => task.id !== id));
-    }
+    if (!window.confirm(t('confirmDeleteTask') || 'Are you sure you want to delete this task?')) return;
+
+    const runDelete = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        await taskAPI.deleteTask(id);
+        await fetchTasks();
+      } catch (err) {
+        console.error('Error deleting task:', err);
+        setError(getErrorMessage(err, t('errorDeletingTask') || 'Unable to delete task'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    runDelete();
   };
 
-  const handleStatusChange = (taskId, newStatus) => {
-    setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, status: newStatus } : task
-    ));
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      setLoading(true);
+      setError('');
+      await taskAPI.updateTask(taskId, { status: newStatus });
+      await fetchTasks();
+    } catch (err) {
+      console.error('Error updating task status:', err);
+      setError(getErrorMessage(err, t('errorUpdatingTask') || 'Unable to update task'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getTasksForDate = (date) => {
@@ -240,6 +303,12 @@ const FarmCalendar = () => {
         <p className="text-xl text-natural-brown">
           {t('scheduleManageTasks') || 'Schedule and manage your farming tasks'}
         </p>
+        {error && (
+          <p className="mt-3 text-sm text-red-600">{error}</p>
+        )}
+        {loading && (
+          <p className="mt-2 text-sm text-gray-500">{t('loading') || 'Loading...'}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -306,9 +375,10 @@ const FarmCalendar = () => {
                       <div className="flex flex-wrap gap-1">
                         {dateTasks.slice(0, 3).map(task => {
                           const category = taskCategories.find(c => c.value === task.category);
+                          const id = task._id || task.id;
                           return (
                             <div
-                              key={task.id}
+                              key={id}
                               className={`w-2 h-2 rounded-full ${getCategoryColorClass(category?.color || 'gray')}`}
                               title={task.title}
                             />
@@ -387,10 +457,11 @@ const FarmCalendar = () => {
                   const category = taskCategories.find(c => c.value === task.category);
                   const status = statuses.find(s => s.value === task.status);
                   const StatusIcon = status?.icon || Circle;
+                  const taskId = task._id || task.id;
                   
                   return (
                     <div
-                      key={task.id}
+                      key={taskId}
                       className={`p-4 border-l-4 rounded-lg ${getBorderColorClass(category?.color || 'gray')}`}
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -421,7 +492,7 @@ const FarmCalendar = () => {
                             <Edit2 size={16} />
                           </button>
                           <button
-                            onClick={() => handleDeleteTask(task.id)}
+                            onClick={() => handleDeleteTask(taskId)}
                             className="p-1 text-red-600 hover:text-red-800"
                             title={t('delete') || 'Delete'}
                           >
@@ -437,7 +508,7 @@ const FarmCalendar = () => {
                             return (
                               <button
                                 key={s.value}
-                                onClick={() => handleStatusChange(task.id, s.value)}
+                                onClick={() => handleStatusChange(taskId, s.value)}
                                 className={`p-1 rounded ${
                                   task.status === s.value
                                     ? getPriorityBgClass(task.priority)
@@ -473,8 +544,9 @@ const FarmCalendar = () => {
               .slice(0, 5)
               .map(task => {
                 const category = taskCategories.find(c => c.value === task.category);
+                const taskId = task._id || task.id;
                 return (
-                  <div key={task.id} className="flex items-center gap-3 p-2 border-b border-gray-100 last:border-0">
+                  <div key={taskId} className="flex items-center gap-3 p-2 border-b border-gray-100 last:border-0">
                     <div className={`w-3 h-3 rounded-full ${getCategoryColorClass(category?.color || 'gray')}`}></div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{task.title}</p>
@@ -587,7 +659,7 @@ const FarmCalendar = () => {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 bg-gradient-to-r from-primary-green to-primary-light text-white py-2 px-4 rounded-lg font-semibold hover:shadow-lg transition-all"
+                  className="flex-1 bg-linear-to-r from-primary-green to-primary-light text-white py-2 px-4 rounded-lg font-semibold hover:shadow-lg transition-all"
                 >
                   {editingTask ? t('updateTask') || 'Update Task' : t('addTask') || 'Add Task'}
                 </button>

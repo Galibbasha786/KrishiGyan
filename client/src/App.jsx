@@ -16,7 +16,8 @@ import PestManagement from './components/PestManagement';
 import MarketPrices from './components/MarketPrices';
 
 const ProtectedRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null; // avoid redirect while restoring session
   return user ? children : <Navigate to="/login" />;
 };
 
