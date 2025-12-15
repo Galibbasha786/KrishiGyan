@@ -1,9 +1,10 @@
 // src/components/Home.jsx
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Sprout, CloudRain, TrendingUp, Shield, Award, 
+import {
+  Sprout, CloudRain, TrendingUp, Shield, Award,
   ChevronLeft, ChevronRight, ArrowRight, Play,
   Mail, Phone, MapPin, MessageSquare, HelpCircle,
   Facebook, Twitter, Instagram, Youtube, Send, CheckCircle
@@ -125,17 +126,16 @@ const Home = () => {
           {slides.map((slide, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                index === currentSlide ? 'opacity-100' : 'opacity-0'
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
+                }`}
             >
-              <div 
+              <div
                 className="w-full h-full bg-cover bg-center relative"
                 style={{ backgroundImage: `url(${slide.image})` }}
               >
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent"></div>
-                
+
                 {/* Content */}
                 <div className="absolute inset-0 flex items-center">
                   <div className="max-w-3xl px-8 md:px-12 text-white">
@@ -184,11 +184,10 @@ const Home = () => {
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`h-3 rounded-full transition-all duration-300 ${
-                index === currentSlide
+              className={`h-3 rounded-full transition-all duration-300 ${index === currentSlide
                   ? 'w-8 bg-primary-green'
                   : 'w-3 bg-white/50 hover:bg-white/70'
-              }`}
+                }`}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}
@@ -216,7 +215,7 @@ const Home = () => {
               <TrendingUp size={24} />
               {t('latestNews') || 'Latest News & Updates'}
             </h2>
-            <button 
+            <button
               onClick={() => navigate('/news')}
               className="text-primary-green hover:text-primary-light text-sm font-semibold flex items-center gap-1"
             >
@@ -224,7 +223,7 @@ const Home = () => {
               <ArrowRight size={16} />
             </button>
           </div>
-          
+
           <div className="space-y-4">
             {[
               {
@@ -252,7 +251,7 @@ const Home = () => {
                 excerpt: t('news4Excerpt') || 'Our AI assistant now supports full Malayalam language for better communication.'
               }
             ].map((news, index) => (
-              <div 
+              <div
                 key={index}
                 className="p-4 border-l-4 border-primary-green bg-gradient-to-r from-green-50 to-white rounded-lg hover:shadow-md transition-all duration-200 cursor-pointer"
                 onClick={() => navigate('/news')}
@@ -301,13 +300,12 @@ const Home = () => {
                   type: 'info'
                 }
               ].map((announcement, index) => (
-                <div 
+                <div
                   key={index}
-                  className={`p-3 rounded-lg border-l-4 ${
-                    announcement.type === 'important' ? 'border-red-500 bg-red-50' :
-                    announcement.type === 'warning' ? 'border-yellow-500 bg-yellow-50' :
-                    'border-blue-500 bg-blue-50'
-                  }`}
+                  className={`p-3 rounded-lg border-l-4 ${announcement.type === 'important' ? 'border-red-500 bg-red-50' :
+                      announcement.type === 'warning' ? 'border-yellow-500 bg-yellow-50' :
+                        'border-blue-500 bg-blue-50'
+                    }`}
                 >
                   <p className="text-sm text-gray-800">{announcement.text}</p>
                 </div>
@@ -442,11 +440,17 @@ const Home = () => {
               </button>
             </div>
           ) : (
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
-              // Handle form submission here
-              console.log('Contact form submitted:', contactForm);
-              setContactSubmitted(true);
+              try {
+                // Handle form submission here
+                await axios.post('http://localhost:8080/api/contact/submit', contactForm);
+                console.log('Contact form submitted:', contactForm);
+                setContactSubmitted(true);
+              } catch (error) {
+                console.error('Error submitting form:', error);
+                alert("Failed to send message. Please try again.");
+              }
             }} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">

@@ -13,6 +13,7 @@ import farmRoutes from "./routes/farmRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import incomeRoutes from "./routes/incomeRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/farm", farmRoutes);
+app.use("/api/contact", contactRoutes);
 
 
 app.use("/api/expenses", expenseRoutes);

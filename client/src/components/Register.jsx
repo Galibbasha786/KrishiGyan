@@ -36,7 +36,7 @@ const Register = () => {
     setError('');
 
     const result = await register(formData);
-    
+
     if (result.success) {
       navigate('/');
     } else {
@@ -47,7 +47,7 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'district' || name === 'village') {
       setFormData({
         ...formData,
@@ -65,7 +65,7 @@ const Register = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center 
                  bg-cover bg-center bg-no-repeat p-4"
       // Replace the old gradient with the inline style for the image
@@ -76,9 +76,9 @@ const Register = () => {
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="auth-logo-image mb-4">
-              <img 
-                src="/src/assets/agri_logo.jpg" 
-                alt="KRISHIGNAN Logo" 
+              <img
+                src="/src/assets/agri_logo.jpg"
+                alt="KRISHIGNAN Logo"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -123,6 +123,8 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  pattern="[^@\s]+@[^@\s]+\.[^@\s]{2,}"
+                  title="Please enter a valid email address (e.g., name@example.com)"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-green focus:border-primary-green transition-all duration-200 bg-gray-50 focus:bg-white"
                 />
               </div>
@@ -205,8 +207,8 @@ const Register = () => {
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full bg-gradient-to-r from-primary-green to-primary-light text-white py-3 px-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:transform-none"
             >
