@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Home, Sprout, CloudRain, Shield, TrendingUp, Award, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react'; // ADD MessageCircle
+import { LogOut, Home, Sprout, CloudRain, Shield, TrendingUp, Award, Calculator, Calendar, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 
@@ -15,13 +15,16 @@ const Layout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const menuItems = [
-    { path: '/', icon: Home, labelKey: 'dashboard' },
+    { path: '/', icon: Home, labelKey: 'home' },
+    { path: '/dashboard', icon: Sprout, labelKey: 'dashboard' },
     { path: '/farms', icon: Sprout, labelKey: 'myFarms' },
     { path: '/crops', icon: CloudRain, labelKey: 'cropAdvice' },
     { path: '/pest', icon: Shield, labelKey: 'pestControl' },
     { path: '/market', icon: TrendingUp, labelKey: 'marketPrices' },
     { path: '/schemes', icon: Award, labelKey: 'governmentSchemes' },
-    { path: '/chat', icon: MessageCircle, labelKey: 'chatCommunity' }, // ADD THIS
+    { path: '/expenses', icon: Calculator, labelKey: 'farmExpenses' },
+    { path: '/calendar', icon: Calendar, labelKey: 'farmCalendar' },
+    { path: '/chat', icon: MessageCircle, labelKey: 'chatCommunity' },
   ];
 
   return (
@@ -34,9 +37,9 @@ const Layout = ({ children }) => {
             {!isSidebarCollapsed ? (
               <div className="flex flex-col items-center gap-2 text-center w-full">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
-                  <img 
-                    src="/src/assets/agri_logo.jpg" 
-                    alt="KRISHIGNAN Logo" 
+                  <img
+                    src="/src/assets/agri_logo.jpg"
+                    alt="KRISHIGNAN Logo"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -48,9 +51,9 @@ const Layout = ({ children }) => {
             ) : (
               <div className="flex justify-center w-full">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
-                  <img 
-                    src="/src/assets/agri_logo.jpg" 
-                    alt="KRISHIGNAN Logo" 
+                  <img
+                    src="/src/assets/agri_logo.jpg"
+                    alt="KRISHIGNAN Logo"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -67,7 +70,7 @@ const Layout = ({ children }) => {
             </div>
           </div>
         </div>
-        
+
         <nav className="flex-1 p-2 pt-4">
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -75,11 +78,10 @@ const Layout = ({ children }) => {
             return (
               <button
                 key={item.path}
-                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg transition-all duration-200 group relative ${
-                  isActive 
-                    ? 'bg-white/20 text-white border-l-4 border-accent-gold' 
+                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3'} px-4 py-3 rounded-lg transition-all duration-200 group relative ${isActive
+                    ? 'bg-white/20 text-white border-l-4 border-accent-gold'
                     : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
+                  }`}
                 onClick={() => navigate(item.path)}
                 title={isSidebarCollapsed ? t(item.labelKey) : ''}
               >
@@ -111,7 +113,7 @@ const Layout = ({ children }) => {
                   <p className="text-accent-gold text-xs capitalize">{user?.role || 'Farmer'}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-white/20 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all duration-200 font-medium"
               >
@@ -124,7 +126,7 @@ const Layout = ({ children }) => {
               <div className="w-10 h-10 bg-accent-gold text-primary-green rounded-full flex items-center justify-center font-bold text-lg cursor-pointer hover:bg-accent-gold/80 transition-colors" title={user?.name}>
                 {user?.name?.charAt(0).toUpperCase()}
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="p-2 rounded-lg border border-white/20 bg-white/10 text-white hover:bg-white/20 transition-all duration-200"
                 title={t('logout')}
@@ -164,9 +166,8 @@ const Layout = ({ children }) => {
                     setLanguage('en');
                     setIsLangOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
-                    language === 'en' ? 'font-semibold text-primary-green' : 'text-gray-800'
-                  }`}
+                  className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${language === 'en' ? 'font-semibold text-primary-green' : 'text-gray-800'
+                    }`}
                 >
                   {t('languageEnglish')} – English
                 </button>
@@ -176,9 +177,8 @@ const Layout = ({ children }) => {
                     setLanguage('ml');
                     setIsLangOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
-                    language === 'ml' ? 'font-semibold text-primary-green' : 'text-gray-800'
-                  }`}
+                  className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${language === 'ml' ? 'font-semibold text-primary-green' : 'text-gray-800'
+                    }`}
                 >
                   {t('languageMalayalam')} – Malayalam
                 </button>

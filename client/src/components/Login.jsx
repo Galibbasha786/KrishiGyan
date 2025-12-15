@@ -1,73 +1,48 @@
 // src/components/Login.jsx
-import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, Volume2, VolumeX } from 'lucide-react'; // Added volume icons
-import backgroundVideo from '../assets/video.mp4'; // Your video file
-import { useLanguage } from '../contexts/LanguageContext.jsx';
-
+import React, { useState, useRef, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
+import { User, Lock, Eye, EyeOff, Fullscreen } from "lucide-react";
+import backgroundImage from "../assets/image1.png";
+import bgVideo from "../assets/video.mp4";
+import { useLanguage } from "../contexts/LanguageContext.jsx";
 const Login = () => {
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Start muted to allow autoplay
-  const [showVolumeControl, setShowVolumeControl] = useState(false);
-  const videoRef = useRef(null);
+  const [error, setError] = useState("");
 
   const { login } = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const videoRef = useRef(null);
 
-  // Check if mobile for performance optimization
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    // Try to play video with sound (browser may block this)
-    if (videoRef.current) {
-      const playPromise = videoRef.current.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.catch(e => {
-          console.log("Video autoplay with sound failed, falling back to muted:", e);
-          // If autoplay with sound fails, mute and try again
-          videoRef.current.muted = true;
-          setIsMuted(true);
-          videoRef.current.play();
-        });
-      }
-    }
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
+    if (!videoRef.current) return;
+    // ensure muted for autoplay to work in browsers
+    videoRef.current.muted = true;
+    const p = videoRef.current.play();
+    if (p && p.catch)
+      p.catch(() => {
+        // autoplay blocked — keep muted and wait for user interaction
+        videoRef.current.muted = true;
+      });
   }, []);
 
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
+  // No side-effects required for this simplified login component
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     const result = await login(formData.email, formData.password);
-    
+
     if (result.success) {
-      navigate('/');
+      navigate("/");
     } else {
       setError(result.message);
     }
@@ -77,93 +52,42 @@ const Login = () => {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden ${isMobile ? 'bg-mobile-fallback' : ''}`}>
-      {/* Video Background - Hidden on mobile for performance */}
-      {!isMobile && (
-        <div className="absolute inset-0 z-0">
-          <video
-            ref={videoRef}
-            autoPlay
-            loop
-            muted={isMuted} // Controlled by state
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src={backgroundVideo} type="video/mp4" />
-            {/* Fallback image if video doesn't load */}
-            <img 
-              src="/src/assets/image1.png" 
-              alt="Background" 
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </video>
-          
-          {/* Dark overlay for better readability */}
-          <div className="absolute inset-0 bg-black/50"></div>
-          
-          {/* Subtle blur effect */}
-          <div className="absolute inset-0 backdrop-blur-sm"></div>
-          
-          {/* Volume Control Button */}
-          <button
-            onClick={toggleMute}
-            onMouseEnter={() => setShowVolumeControl(true)}
-            onMouseLeave={() => setShowVolumeControl(false)}
-            className="absolute top-4 right-4 z-20 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-200 backdrop-blur-sm"
-            aria-label={isMuted ? "Unmute video" : "Mute video"}
-          >
-            {isMuted ? (
-              <VolumeX className="h-6 w-6" />
-            ) : (
-              <Volume2 className="h-6 w-6" />
-            )}
-            {showVolumeControl && (
-              <div className="absolute right-full mr-2 top-1/2 transform -translate-y-1/2 bg-black/80 text-white px-3 py-1 rounded-lg text-sm whitespace-nowrap backdrop-blur-sm">
-                {isMuted ? "Click to unmute" : "Click to mute"}
-              </div>
-            )}
-          </button>
-          
-          {/* Audio Info Message (only shows when muted) */}
-          {isMuted && (
-            <div className="absolute bottom-4 left-4 z-20 bg-black/50 text-white px-4 py-2 rounded-lg text-sm backdrop-blur-sm animate-pulse">
-              <span className="flex items-center gap-2">
-                <VolumeX className="h-4 w-4" />
-                Video is muted. Click speaker icon to unmute
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+    <div className="relative min-h-screen flex items-center justify-center p-4">
+      <video
+        ref={videoRef}
+        src={bgVideo}
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        autoPlay
+        loop
+        muted
+        playsInline
+      />
+      <div
+        className="absolute inset-0 bg-white/30 backdrop-blur-xl z-10"
+        aria-hidden="true"
+      />
 
-      {/* Mobile fallback background */}
-      {isMobile && (
-        <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" 
-             style={{ backgroundImage: `url(/src/assets/image1.png)` }}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-        </div>
-      )}
-
-      {/* Login Form */}
-      <div className="w-full max-w-md z-10 relative">
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-primary-green/20">
+      <div className="relative z-20 w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-primary-green/10">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="auth-logo-image mb-4 mx-auto" style={{ width: '80px', height: '80px' }}>
-              <img 
-                src="/src/assets/agri_logo.jpg" 
-                alt="KRISHIGNAN Logo" 
-                className="w-full h-full object-cover rounded-full border-4 border-white shadow-md"
+            <div className="auth-logo-image mb-4">
+              <img
+                src="/src/assets/agri_logo.jpg"
+                alt="KRISHIGNAN Logo"
+                className="w-full h-full object-cover"
               />
             </div>
-            <h1 className="text-3xl font-bold text-primary-green mb-2">KRISHIGNAN</h1>
+            <h1 className="text-3xl font-bold text-primary-green mb-2">
+              KRISHIGNAN
+            </h1>
             <p className="text-natural-brown font-medium">FARMING WISDOM</p>
-            <p className="text-gray-600 mt-4">{t('signInToYourAccount')}</p>
+            <p className="text-gray-600 mt-4">{t("signInToYourAccount")}</p>
           </div>
 
           {error && (
@@ -182,7 +106,7 @@ const Login = () => {
                 <input
                   type="email"
                   name="email"
-                  placeholder={t('emailPlaceholder')}
+                  placeholder={t("emailPlaceholder")}
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -198,7 +122,7 @@ const Login = () => {
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
-                  placeholder={t('passwordPlaceholder')}
+                  placeholder={t("passwordPlaceholder")}
                   value={formData.password}
                   onChange={handleChange}
                   required
@@ -218,31 +142,23 @@ const Login = () => {
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full bg-gradient-to-r from-primary-green to-primary-light text-white py-3 px-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  {t('signingIn')}
-                </span>
-              ) : t('signIn')}
+              {loading ? t("signingIn") : t("signIn")}
             </button>
           </form>
 
           <div className="text-center mt-6 pt-6 border-t border-gray-200/50">
             <p className="text-gray-600">
-              {t('dontHaveAccount')}{' '}
-              <Link 
-                to="/register" 
-                className="text-primary-green font-semibold hover:underline hover:text-primary-dark transition-colors"
+              {t("dontHaveAccount")}{" "}
+              <Link
+                to="/register"
+                className="text-primary-green font-semibold hover:underline"
               >
-                {t('signUpHere')}
+                {t("signUpHere")}
               </Link>
             </p>
           </div>
