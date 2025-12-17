@@ -14,24 +14,46 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null); // ADD THIS STATE
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
     if (storedToken && userData) {
-      setToken(storedToken); // SET THE TOKEN
+      setToken(storedToken);
       setUser(JSON.parse(userData));
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
     }
     setLoading(false);
   }, []);
 
+  // Refresh user data from API
+  const refreshUser = async () => {
+    try {
+      if (token) {
+        const response = await axios.get(`${API_URL}/user/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const updatedUser = response.data;
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      // If token is invalid, logout
+      if (error.response?.status === 401) {
+        logout();
+      }
+    }
+  };
+
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', {
+      const response = await axios.post(`${API_URL}/auth/login`, {
         email,
         password
       });
@@ -41,7 +63,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userData));
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-      setToken(newToken); // SET THE TOKEN
+      setToken(newToken);
       setUser(userData);
       
       return { success: true };
@@ -55,14 +77,14 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/register', userData);
+      const response = await axios.post(`${API_URL}/auth/register`, userData);
       
       if (response.data.token) {
         const { token: newToken, user: newUser } = response.data;
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(newUser));
         axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        setToken(newToken); // SET THE TOKEN
+        setToken(newToken);
         setUser(newUser);
       }
       
@@ -79,17 +101,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
-    setToken(null); // CLEAR THE TOKEN
+    setToken(null);
     setUser(null);
   };
 
   const value = {
     user,
-    token, // ADD TOKEN TO VALUE
+    token,
     login,
     register,
     logout,
-    loading
+    loading,
+    refreshUser // Add this function
   };
 
   return (

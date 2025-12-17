@@ -2,9 +2,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Home, Sprout, CloudRain, Shield, TrendingUp, Award, Calculator, Calendar, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { 
+  LogOut, Home, Sprout, CloudRain, Shield, TrendingUp, Award, 
+  Calculator, Calendar, ChevronLeft, ChevronRight, MessageCircle, 
+  Settings, User as UserIcon, Mic
+} from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
+import UserProfileModal from './UserProfileModal.jsx';
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -13,6 +18,7 @@ const Layout = ({ children }) => {
   const { language, setLanguage, t } = useLanguage();
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const menuItems = [
     { path: '/', icon: Home, labelKey: 'home' },
@@ -25,6 +31,7 @@ const Layout = ({ children }) => {
     { path: '/expenses', icon: Calculator, labelKey: 'farmExpenses' },
     { path: '/calendar', icon: Calendar, labelKey: 'farmCalendar' },
     { path: '/chat', icon: MessageCircle, labelKey: 'chatCommunity' },
+    { path: '/voice-assistant', icon: Mic, labelKey: 'voiceAssistant' },
   ];
 
   return (
@@ -104,14 +111,21 @@ const Layout = ({ children }) => {
         <div className="p-4 bg-black/10">
           {!isSidebarCollapsed ? (
             <>
-              <div className="flex items-center gap-3 mb-4 justify-center text-center">
-                <div className="w-10 h-10 bg-accent-gold text-primary-green rounded-full flex items-center justify-center font-bold text-lg">
+              <div 
+                className="flex items-center gap-3 mb-4 justify-center text-center cursor-pointer hover:bg-white/10 p-2 rounded-lg transition-colors"
+                onClick={() => setShowProfileModal(true)}
+                title="Click to manage account"
+              >
+                <div className="w-10 h-10 bg-accent-gold text-primary-green rounded-full flex items-center justify-center font-bold text-lg relative group">
                   {user?.name?.charAt(0).toUpperCase()}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-full transition-colors"></div>
                 </div>
-                <div>
+                <div className="flex-1 text-left">
                   <p className="font-semibold text-white text-sm">{user?.name}</p>
                   <p className="text-accent-gold text-xs capitalize">{user?.role || 'Farmer'}</p>
+                  <p className="text-white/60 text-xs mt-1">Click to manage account</p>
                 </div>
+                <Settings size={16} className="text-white/60" />
               </div>
               <button
                 onClick={logout}
@@ -123,8 +137,15 @@ const Layout = ({ children }) => {
             </>
           ) : (
             <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 bg-accent-gold text-primary-green rounded-full flex items-center justify-center font-bold text-lg cursor-pointer hover:bg-accent-gold/80 transition-colors" title={user?.name}>
+              <div 
+                className="w-10 h-10 bg-accent-gold text-primary-green rounded-full flex items-center justify-center font-bold text-lg cursor-pointer hover:bg-accent-gold/80 transition-colors relative group"
+                onClick={() => setShowProfileModal(true)}
+                title="Account Settings"
+              >
                 {user?.name?.charAt(0).toUpperCase()}
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary-green rounded-full flex items-center justify-center">
+                  <UserIcon size={10} className="text-white" />
+                </div>
               </div>
               <button
                 onClick={logout}
@@ -188,6 +209,12 @@ const Layout = ({ children }) => {
         </div>
 
         {children}
+        
+        {/* User Profile Modal */}
+        <UserProfileModal 
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+        />
       </div>
     </div>
   );

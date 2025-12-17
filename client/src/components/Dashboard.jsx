@@ -1,14 +1,17 @@
 // src/components/Dashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext.jsx';
 import axios from 'axios';
 import {
   Sprout, CloudRain, TrendingUp, AlertCircle, Plus, Shield,
-  Award, MessageCircle
+  Award, MessageCircle, Volume2, VolumeX, Music
 } from 'lucide-react';
 import Chatbot from './Chatbot';
+
+// Import your audio file from assets - Change 'your-audio-file.mp3' to your actual filename
+import backgroundAudio from '../assets/your-audio-file.mp3'; // ⚠️ CHANGE THIS FILENAME
 
 const Dashboard = () => {
   const { user, token } = useAuth();
@@ -17,26 +20,82 @@ const Dashboard = () => {
   const [farms, setFarms] = useState([]);
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0); // Keep this for the badge
-
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.3);
+  const [audioError, setAudioError] = useState('');
+  
+  const audioRef = useRef(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
   const getAuthConfig = () => {
-    const config = {
-      headers: {}
-    };
-
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-
+    const config = { headers: {} };
+    if (token) config.headers['Authorization'] = `Bearer ${token}`;
     return config;
   };
 
   useEffect(() => {
     fetchDashboardData();
     fetchUnreadCount();
+    
+    // Initialize audio
+    const initAudio = () => {
+      try {
+        // Create audio element with your local file
+        const audio = new Audio(backgroundAudio);
+        audio.loop = true;
+        audio.volume = volume;
+        audio.preload = 'metadata'; // Preload metadata for faster start
+        
+        audioRef.current = audio;
+
+        // Event listeners
+        audio.addEventListener('error', (e) => {
+          console.error('Audio error:', e);
+          setAudioError('Audio file not found. Please check if the file exists in assets folder.');
+        });
+
+        audio.addEventListener('canplaythrough', () => {
+          console.log('✅ Audio loaded and ready to play');
+          setAudioError('');
+        });
+
+        audio.addEventListener('play', () => {
+          setIsAudioPlaying(true);
+        });
+
+        audio.addEventListener('pause', () => {
+          setIsAudioPlaying(false);
+        });
+
+        audio.addEventListener('ended', () => {
+          setIsAudioPlaying(false);
+        });
+
+      } catch (error) {
+        console.error('Audio initialization error:', error);
+        setAudioError('Failed to initialize audio player');
+      }
+    };
+
+    initAudio();
+    
+    // Cleanup on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+    };
   }, []);
+
+  // Update volume when changed
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   const fetchDashboardData = async () => {
     try {
@@ -48,9 +107,7 @@ const Dashboard = () => {
       ]);
 
       setFarms(farmsResponse.data.data || []);
-      if (weatherResponse) {
-        setWeather(weatherResponse.data.data);
-      }
+      if (weatherResponse) setWeather(weatherResponse.data.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -65,6 +122,44 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
+  };
+
+  const toggleAudio = () => {
+    if (!audioRef.current) {
+      setAudioError('Audio player not available');
+      return;
+    }
+
+    try {
+      if (isAudioPlaying) {
+        audioRef.current.pause();
+      } else {
+        // Try to play audio
+        const playPromise = audioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('Playback failed:', error);
+            // Handle browser autoplay policies
+            if (error.name === 'NotAllowedError') {
+              setAudioError('Browser blocked audio. Click again to enable.');
+            } else {
+              setAudioError('Failed to play audio');
+            }
+            setIsAudioPlaying(false);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Audio toggle error:', error);
+      setAudioError('Error playing audio');
+      setIsAudioPlaying(false);
+    }
+  };
+
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
   };
 
   const stats = [
@@ -107,7 +202,69 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+      
+      {/* Background Audio Control - Floating in bottom left */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <div className="bg-white/95 backdrop-blur-md rounded-full shadow-xl p-2 flex items-center gap-3 border border-gray-200">
+          <div className="relative">
+            <button
+              onClick={toggleAudio}
+              className={`p-3 rounded-full transition-all duration-200 ${
+                isAudioPlaying 
+                  ? 'bg-primary-green text-white shadow-lg' 
+                  : audioError
+                    ? 'bg-red-100 text-red-600'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              title={isAudioPlaying ? "Pause background audio" : audioError || "Play background audio"}
+              aria-label={isAudioPlaying ? "Pause audio" : "Play audio"}
+            >
+              {isAudioPlaying ? (
+                <Volume2 size={20} />
+              ) : audioError ? (
+                <VolumeX size={20} className="text-red-600" />
+              ) : (
+                <VolumeX size={20} />
+              )}
+              
+              {/* Error indicator */}
+              {audioError && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              )}
+            </button>
+            
+            {/* Error tooltip */}
+            {audioError && (
+              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-red-50 border border-red-200 text-red-700 px-3 py-1 rounded-lg text-xs whitespace-nowrap z-50 shadow-lg">
+                {audioError}
+              </div>
+            )}
+          </div>
+          
+          {/* Volume controls (only show when playing) */}
+          {isAudioPlaying && !audioError && (
+            <div className="flex items-center gap-2 px-2 animate-fade-in">
+              <Music size={16} className="text-primary-green" />
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="w-20 accent-primary-green hover:cursor-pointer"
+                title={`Volume: ${Math.round(volume * 100)}%`}
+                aria-label="Volume control"
+              />
+              <span className="text-xs text-gray-600 w-8">
+                {Math.round(volume * 100)}%
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-primary-green mb-4">
@@ -148,7 +305,7 @@ const Dashboard = () => {
                 </div>
               </div>
               {stat.color === 'purple' && unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
                   {unreadCount}
                 </span>
               )}
