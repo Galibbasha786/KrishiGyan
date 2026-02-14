@@ -1,10 +1,12 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8080/api';
+// Use Vite env var in production (set VITE_API_BASE in Vercel), fallback to localhost for local dev
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
 });
 
 // Add token to requests
