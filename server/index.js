@@ -48,7 +48,7 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
     message: "Server is running smoothly",
-    database: "Local MongoDB",
+    database: "MongoDB Atlas",
     timestamp: new Date().toISOString(),
     features: [
       "Authentication",
@@ -75,5 +75,5 @@ mongoose
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log("🌾 AI Kerala Farmers Platform - Local DB Active");
+  console.log("🌾 AI Kerala Farmers Platform - Production Ready");
 });
