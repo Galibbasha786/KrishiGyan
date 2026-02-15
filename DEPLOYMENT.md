@@ -19,6 +19,8 @@ Steps (minimal)
    - Build command: `npm install`
    - Start command: `npm start`
    - Set environment variables in the Render dashboard using values from `.env.example`.
+    - Set environment variables in the Render dashboard (do NOT commit secrets like DB credentials or JWT keys).
+       Note: `server/.env` has been removed from the repository — set these values directly in the Render service's Environment settings.
    - Deploy. Copy the service URL (e.g., `https://my-backend.onrender.com`).
 
 3. Frontend (Vercel)
