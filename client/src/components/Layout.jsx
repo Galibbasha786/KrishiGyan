@@ -10,7 +10,7 @@ import {
 import { useLanguage } from '../contexts/LanguageContext.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import UserProfileModal from './UserProfileModal.jsx';
-
+import logo from "../assets/agri_logo.jpg";
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -45,10 +45,10 @@ const Layout = ({ children }) => {
               <div className="flex flex-col items-center gap-2 text-center w-full">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
                   <img
-                    src="/src/assets/agri_logo.jpg"
-                    alt="KRISHIGNAN Logo"
-                    className="w-full h-full object-cover"
-                  />
+  src={logo}
+  alt="KRISHIGNAN Logo"
+  className="w-full h-full object-cover"
+/>
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white">KRISHIGNAN</h2>

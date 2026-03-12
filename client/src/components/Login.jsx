@@ -5,7 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { User, Lock, Eye, EyeOff, Volume2, VolumeX } from "lucide-react"; // ADD Volume icons
 import bgVideo from "../assets/video.mp4";
 import { useLanguage } from "../contexts/LanguageContext.jsx";
-
+import logo from "../assets/agri_logo.jpg";
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
@@ -109,10 +109,10 @@ const Login = () => {
           <div className="text-center mb-8">
             <div className="auth-logo-image mb-4">
               <img
-                src="/src/assets/agri_logo.jpg"
-                alt="KRISHIGNAN Logo"
-                className="w-full h-full object-cover"
-              />
+  src={logo}
+  alt="KRISHIGNAN Logo"
+  className="w-full h-full object-cover"
+/>
             </div>
             <h1 className="text-3xl font-bold text-primary-green mb-2">
               KRISHIGNAN
