@@ -1,5 +1,6 @@
 // src/components/ForgotPassword.jsx - UPDATED with logo only (no video)
 import React, { useState } from "react";
+import { API_BASE } from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
@@ -37,7 +38,7 @@ const ForgotPassword = () => {
         setSuccess("");
         
         try {
-            const response = await fetch("http://localhost:8080/api/password-reset/request", {
+            const response = await fetch(`${API_BASE}/password-reset/request`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: formData.email })
@@ -71,7 +72,7 @@ const ForgotPassword = () => {
         setSuccess("");
         
         try {
-            const response = await fetch("http://localhost:8080/api/password-reset/verify", {
+            const response = await fetch(`${API_BASE}/password-reset/verify`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -116,7 +117,7 @@ const ForgotPassword = () => {
         setSuccess("");
         
         try {
-            const response = await fetch("http://localhost:8080/api/password-reset/reset", {
+            const response = await fetch(`${API_BASE}/password-reset/reset`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

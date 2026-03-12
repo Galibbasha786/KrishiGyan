@@ -6,7 +6,12 @@ Overview
 
 Required env vars
 - On Render (service): set `MONGO_URI`, `JWT_SECRET`, `FRONTEND_URL` (or `ALLOWED_ORIGINS`), `PORT` (optional)
-- On Vercel (project settings): set `VITE_API_BASE` to `https://<your-backend>/api`
+ - On Vercel (project settings): set environment variables (Vercel project settings):
+    - `VITE_API_BASE` = `https://<your-backend>/api`
+    - `VITE_API_URL` = `https://<your-backend>/api` (some components read this name)
+    - `VITE_GEMINI_API_KEY` = (Google Gemini API key)
+    - `VITE_PLANT_ID_API_KEY` = (Plant ID API key)
+    Note: Do NOT commit `.env` files containing these keys; set them in Vercel's Environment Variables UI.
 
 Steps (minimal)
 1. Push code to GitHub (root repository).

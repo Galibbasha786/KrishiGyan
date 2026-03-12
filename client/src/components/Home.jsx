@@ -1,6 +1,7 @@
 // src/components/Home.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -444,7 +445,7 @@ const Home = () => {
               e.preventDefault();
               try {
                 // Handle form submission here
-                await axios.post('http://localhost:8080/api/contact/submit', contactForm);
+                await api.post('/contact/submit', contactForm);
                 console.log('Contact form submitted:', contactForm);
                 setContactSubmitted(true);
               } catch (error) {
